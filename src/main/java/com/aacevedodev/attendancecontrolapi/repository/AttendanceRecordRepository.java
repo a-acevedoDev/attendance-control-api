@@ -41,17 +41,18 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
     );
     @Query(value = "SELECT * FROM attendance_record", nativeQuery = true)
     List<AttendanceRecord> findAllIncludingDeletedUsers();
-    @Query(value = "SELECT ar.* FROM attendance_record ar " +
+    @Query(value =
+            "SELECT ar.* FROM attendance_record ar " +
             "JOIN user u ON ar.user_id = u.id " +
             "WHERE ar.type = 'ENTRADA' " +
             "AND ar.date BETWEEN :startDate AND :endDate " +
-            "AND TIME(ar.date) > :horaLimite " +
+            "AND TIME(ar.date) > :hourLimit " +
             "AND u.deleted = false",
             nativeQuery = true)
     List<AttendanceRecord> findLateArrivals(
             @Param("startDate") Timestamp startDate,
             @Param("endDate") Timestamp endDate,
-            @Param("horaLimite") String horaLimite
+            @Param("hourLimit") String hourLimit
     );
     @Query(value = "SELECT ar.* FROM attendance_record ar " +
             "JOIN user u ON ar.user_id = u.id " +

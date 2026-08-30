@@ -8,6 +8,7 @@ import com.aacevedodev.attendancecontrolapi.repository.AttendanceRecordRepositor
 import com.aacevedodev.attendancecontrolapi.repository.UserRepository;
 import com.aacevedodev.attendancecontrolapi.service.AttendanceService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +16,9 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class IAttendanceService implements AttendanceService {
@@ -25,6 +28,12 @@ public class IAttendanceService implements AttendanceService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Value("${app.attendance.entry}")
+    private String attendanceEntry;
+
+    @Value("${app.attendance.departure}")
+    private String attendanceDeparture;
 
     @Override
     @Transactional
@@ -92,19 +101,53 @@ public class IAttendanceService implements AttendanceService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<LateArrivalReportDTO> getLateArrivalsReport(LocalDate fecha) {
-        return List.of();
+    public List<LateArrivalReportDTO> getLateArrivalsReport(LocalDate date) {
+        if (date == null) {
+            date = LocalDate.now();
+        }
+
+        Timestamp start = Timestamp.valueOf(date.atStartOfDay());
+        Timestamp end = Timestamp.valueOf(date.atTime(23, 59, 59));
+
+        List<AttendanceRecord> attendance = attendanceRepository.findLateArrivals(start, end, attendanceEntry);
+
+        return attendance.stream()
+                .map(r -> new LateArrivalReportDTO(
+                        r.getUser().getId(),
+                        r.getUser().getRut(),
+                        r.getUser().getName() + " " + r.getUser().getLastName(),
+                        r.getDate().toLocalDateTime(),
+                        delayMinute(r.getDate())
+                ))
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<EarlyDepartureReportDTO> getEarlyDeparturesReport(LocalDate fecha) {
-        return List.of();
+    public List<EarlyDepartureReportDTO> getEarlyDeparturesReport(LocalDate date) {
+        if (date == null) {
+            date = LocalDate.now();
+        }
+
+        Timestamp start = Timestamp.valueOf(date.atStartOfDay());
+        Timestamp end = Timestamp.valueOf(date.atTime(23, 59, 59));
+
+        List<AttendanceRecord> attendance = attendanceRepository.findEarlyDepartures(start, end, attendanceDeparture);
+
+        return attendance.stream()
+                .map(r -> new EarlyDepartureReportDTO(
+                        r.getUser().getId(),
+                        r.getUser().getRut(),
+                        r.getUser().getName() + " " + r.getUser().getLastName(),
+                        r.getDate().toLocalDateTime(),
+                        earlyMinute(r.getDate())
+                ))
+                .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<AbsenteeismReportDTO> getAbsenteeismReport(LocalDate fecha) {
+    public List<AbsenteeismReportDTO> getAbsenteeismReport(LocalDate date) {
         return List.of();
     }
 
@@ -124,5 +167,25 @@ public class IAttendanceService implements AttendanceService {
     @Transactional(readOnly = true)
     public boolean hasCheckedInToday(Integer userId) {
         return false;
+    }
+
+    private int delayMinute(Timestamp entry) {
+        LocalDateTime entryLdt = entry.toLocalDateTime();
+        LocalDateTime limit = entryLdt.toLocalDate().atTime(LocalTime.parse(attendanceEntry));
+
+        if (entryLdt.isAfter(limit)) {
+            return (int) java.time.Duration.between(limit, entryLdt).toMinutes();
+        }
+        return 0;
+    }
+
+    private int earlyMinute(Timestamp entry) {
+        LocalDateTime entryLdt = entry.toLocalDateTime();
+        LocalDateTime limit = entryLdt.toLocalDate().atTime(LocalTime.parse(attendanceDeparture));
+
+        if (entryLdt.isBefore(limit)) {
+            return (int) java.time.Duration.between(entryLdt, limit).toMinutes();
+        }
+        return 0;
     }
 }
