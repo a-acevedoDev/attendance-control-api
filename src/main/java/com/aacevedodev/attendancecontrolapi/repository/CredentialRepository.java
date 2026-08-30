@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface CredentialRepository extends JpaRepository<Credential, Integer> {
     boolean existsByEmail(String email);
     Optional<Credential> findByUserId(Integer id);
+    Optional<Credential> findByEmail(String email);
 }

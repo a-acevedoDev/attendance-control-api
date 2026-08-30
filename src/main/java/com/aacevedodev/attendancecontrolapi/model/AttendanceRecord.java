@@ -1,8 +1,10 @@
 package com.aacevedodev.attendancecontrolapi.model;
 
-import com.aacevedodev.attendancecontrolapi.model.enums.TypeAttendance;
+import com.aacevedodev.attendancecontrolapi.model.enums.AttendanceType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
@@ -10,7 +12,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.sql.Timestamp;
 
 @NoArgsConstructor
+@AllArgsConstructor
 @Data
+@Builder
 @Entity
 @Table(name = "attendance_record")
 public class AttendanceRecord {
@@ -21,7 +25,7 @@ public class AttendanceRecord {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 10)
-    private TypeAttendance typeAttendance;
+    private AttendanceType typeAttendance;
 
     @CreationTimestamp
     @Column(updatable = false)

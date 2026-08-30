@@ -3,7 +3,7 @@ package com.aacevedodev.attendancecontrolapi.model.enums;
 import lombok.Getter;
 
 @Getter
-public enum TypeAttendance {
+public enum AttendanceType {
     ENTRADA,
     SALIDA;
 }
