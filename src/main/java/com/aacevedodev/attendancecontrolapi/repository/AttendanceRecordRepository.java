@@ -54,7 +54,8 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
             @Param("endDate") Timestamp endDate,
             @Param("hourLimit") String hourLimit
     );
-    @Query(value = "SELECT ar.* FROM attendance_record ar " +
+    @Query(value =
+            "SELECT ar.* FROM attendance_record ar " +
             "JOIN user u ON ar.user_id = u.id " +
             "WHERE ar.type = 'SALIDA' " +
             "AND ar.date BETWEEN :startDate AND :endDate " +
@@ -66,7 +67,8 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
             @Param("endDate") Timestamp endDate,
             @Param("horaLimite") String horaLimite
     );
-    @Query(value = "SELECT u.* FROM user u " +
+    @Query(value =
+            "SELECT u.* FROM user u " +
             "WHERE u.deleted = false " +
             "AND u.id NOT IN ( " +
             "    SELECT ar.user_id FROM attendance_record ar " +

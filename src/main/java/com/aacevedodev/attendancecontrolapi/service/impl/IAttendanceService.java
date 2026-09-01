@@ -148,25 +148,57 @@ public class IAttendanceService implements AttendanceService {
     @Override
     @Transactional(readOnly = true)
     public List<AbsenteeismReportDTO> getAbsenteeismReport(LocalDate date) {
-        return List.of();
+        if (date == null) {
+            date = LocalDate.now();
+        }
+
+        List<User> user = attendanceRepository.findAbsentUsers(date.toString());
+        LocalDate finalDate = date;
+        return user.stream()
+                .map(u -> new AbsenteeismReportDTO(
+                        u.getId(),
+                        u.getRut(),
+                        u.getName() + " " + u.getLastName(),
+                        finalDate
+                ))
+                .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<AttendanceRecord> getAttendanceByUser(Integer userId) {
-        return List.of();
+        return attendanceRepository.findByUserId(userId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<AttendanceRecord> getAttendanceByUserAndDateRange(Integer userId, LocalDate startDate, LocalDate endDate) {
-        return List.of();
+        if (startDate == null) {
+            startDate = LocalDate.now().minusDays(7);
+        }
+
+        if (endDate == null) {
+            endDate = LocalDate.now();
+        }
+
+        Timestamp start = Timestamp.valueOf(startDate.atStartOfDay());
+        Timestamp end = Timestamp.valueOf(endDate.atTime(23, 59, 59));
+
+        return attendanceRepository.findByUserIdAndDateBetween(userId, start, end);
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean hasCheckedInToday(Integer userId) {
-        return false;
+        LocalDateTime start = LocalDate.now().atStartOfDay();
+        LocalDateTime end = LocalDate.now().atTime(23, 59, 59);
+
+        return attendanceRepository.existsByUserIdAndTypeAttendanceAndDateBetween(
+                userId,
+                AttendanceType.ENTRADA,
+                Timestamp.valueOf(start),
+                Timestamp.valueOf(end)
+        );
     }
 
     private int delayMinute(Timestamp entry) {
