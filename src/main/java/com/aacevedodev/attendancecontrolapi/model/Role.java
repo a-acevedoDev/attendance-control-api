@@ -19,7 +19,7 @@ public class Role {
     private Integer id;
 
     @NotBlank
-    @Column(length = 12)
+    @Column(length = 20)
     private String name;
 
     @ManyToMany(mappedBy = "roles")

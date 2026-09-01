@@ -13,13 +13,11 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 
     boolean existsByRut(String rut);
 
-    @Query("SELECT u FROM User u")
-    List<User> findAllWithDeleted();
-
-    @Query("SELECT u FROM User u WHERE u.deleted = true")
+    @Query(value = "SELECT * FROM user WHERE deleted = true", nativeQuery = true)
     List<User> findAllDeleted();
 
-    Optional<User> findByRut(String rut);
+    @Query(value = "SELECT * FROM user", nativeQuery = true)
+    List<User> findAllWithDeleted();
 
-    Optional<User> findByEmail(String email);
+    Optional<User> findByRut(String rut);
 }

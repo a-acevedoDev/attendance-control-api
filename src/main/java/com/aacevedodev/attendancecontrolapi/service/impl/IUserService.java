@@ -146,6 +146,7 @@ public class IUserService implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
+        return credentialRepository.findByEmail(email)
+                .map(Credential::getUser);
     }
 }
