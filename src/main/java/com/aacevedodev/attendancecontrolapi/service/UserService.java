@@ -2,12 +2,15 @@ package com.aacevedodev.attendancecontrolapi.service;
 
 import com.aacevedodev.attendancecontrolapi.dto.UserCreateDTO;
 import com.aacevedodev.attendancecontrolapi.dto.UserUpdateDTO;
+import com.aacevedodev.attendancecontrolapi.model.Credential;
+import com.aacevedodev.attendancecontrolapi.model.Role;
 import com.aacevedodev.attendancecontrolapi.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface UserService {
     User createUser(UserCreateDTO createDTO);
@@ -19,4 +22,6 @@ public interface UserService {
     List<User> getActiveUsers();
     Optional<User> findByRut(String rut);
     Optional<User> findByEmail(String email);
+    Optional<Credential> findCredentialByEmail(String email);
+    Set<Role> getUserRoles(Integer userId);
 }

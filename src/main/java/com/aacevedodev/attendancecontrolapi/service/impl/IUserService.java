@@ -47,7 +47,7 @@ public class IUserService implements UserService {
             throw new RuntimeException("El RUT ya está registrado.");
         }
 
-        Role role = roleRepository.findByName("ROLE_EMPLOYEE")
+        Role role = roleRepository.findByName("EMPLOYEE")
                 .orElseThrow(() -> new RuntimeException("Role no encontrado."));
 
         User user = User.builder()
@@ -148,5 +148,19 @@ public class IUserService implements UserService {
     public Optional<User> findByEmail(String email) {
         return credentialRepository.findByEmail(email)
                 .map(Credential::getUser);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Credential> findCredentialByEmail(String email) {
+        return credentialRepository.findByEmail(email);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Role> getUserRoles(Integer userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        return user.getRoles();
     }
 }

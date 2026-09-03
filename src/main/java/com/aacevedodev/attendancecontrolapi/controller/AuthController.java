@@ -1,17 +1,17 @@
 package com.aacevedodev.attendancecontrolapi.controller;
 
-import com.aacevedodev.attendancecontrolapi.dto.AuthResponseDTO;
 import com.aacevedodev.attendancecontrolapi.dto.LoginRequestDTO;
-import com.aacevedodev.attendancecontrolapi.model.Credential;
-import com.aacevedodev.attendancecontrolapi.repository.CredentialRepository;
+import com.aacevedodev.attendancecontrolapi.dto.AuthResponseDTO;
+import com.aacevedodev.attendancecontrolapi.model.User;
 import com.aacevedodev.attendancecontrolapi.security.JwtService;
-import jakarta.validation.Valid;
+import com.aacevedodev.attendancecontrolapi.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,32 +24,41 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
-    private final CredentialRepository credentialRepository;
+    private final UserService userService;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody LoginRequestDTO request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+    public ResponseEntity<AuthResponseDTO> login(@RequestBody LoginRequestDTO loginRequest) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginRequest.getEmail(),
+                        loginRequest.getPassword()
+                )
         );
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.getEmail());
-        String token = jwtService.generateToken(userDetails);
+        String token = jwtService.generateToken(authentication);
 
-        Credential credential = credentialRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Credenciales no encontradas"));
+        User user = userService.findByEmail(loginRequest.getEmail())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        String nombreCompleto = credential.getUser().getName() + " " + credential.getUser().getLastName();
-        String rol = credential.getUser().getRoles().stream()
+        String nombreCompleto = user.getName() + " " + user.getLastName();
+
+        String rol = user.getRoles().stream()
                 .findFirst()
-                .map(role -> role.getName().replace("ROLE_", ""))
-                .orElse("USER");
+                .map(role -> role.getName())
+                .orElse("EMPLOYEE");
 
-        return ResponseEntity.ok(AuthResponseDTO.builder()
+        AuthResponseDTO response = AuthResponseDTO.builder()
                 .token(token)
-                .email(request.getEmail())
+                .email(authentication.getName())
                 .nombreCompleto(nombreCompleto)
                 .rol(rol)
-                .build());
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout() {
+        return ResponseEntity.ok().build();
     }
 }
