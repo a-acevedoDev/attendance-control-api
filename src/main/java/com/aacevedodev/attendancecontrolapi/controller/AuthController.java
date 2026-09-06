@@ -40,7 +40,7 @@ public class AuthController {
         User user = userService.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        String nombreCompleto = user.getName() + " " + user.getLastName();
+        String fullName = user.getName() + " " + user.getLastName();
 
         String rol = user.getRoles().stream()
                 .findFirst()
@@ -50,7 +50,7 @@ public class AuthController {
         AuthResponseDTO response = AuthResponseDTO.builder()
                 .token(token)
                 .email(authentication.getName())
-                .nombreCompleto(nombreCompleto)
+                .fullName(fullName)
                 .rol(rol)
                 .build();
 
