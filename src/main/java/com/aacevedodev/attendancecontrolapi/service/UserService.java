@@ -1,6 +1,7 @@
 package com.aacevedodev.attendancecontrolapi.service;
 
 import com.aacevedodev.attendancecontrolapi.dto.UserCreateDTO;
+import com.aacevedodev.attendancecontrolapi.dto.UserManagementDTO;
 import com.aacevedodev.attendancecontrolapi.dto.UserUpdateDTO;
 import com.aacevedodev.attendancecontrolapi.model.Credential;
 import com.aacevedodev.attendancecontrolapi.model.Role;
@@ -24,4 +25,5 @@ public interface UserService {
     Optional<User> findByEmail(String email);
     Optional<Credential> findCredentialByEmail(String email);
     Set<Role> getUserRoles(Integer userId);
+    List<UserManagementDTO> getAllUsersForManagement();
 }

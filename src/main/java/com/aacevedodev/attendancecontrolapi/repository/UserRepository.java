@@ -20,4 +20,7 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     List<User> findAllWithDeleted();
 
     Optional<User> findByRut(String rut);
+
+    @Query(value = "SELECT * FROM user WHERE deleted = false", nativeQuery = true)
+    List<User> findAllActive();
 }

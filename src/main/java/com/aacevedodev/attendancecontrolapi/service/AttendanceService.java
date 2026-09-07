@@ -16,4 +16,7 @@ public interface AttendanceService {
     List<AttendanceRecord> getAttendanceByUser(Integer userId);
     List<AttendanceRecord> getAttendanceByUserAndDateRange(Integer userId, LocalDate startDate, LocalDate endDate);
     boolean hasCheckedInToday(Integer userId);
+    DashboardMetricsDTO getDashboardMetrics();
+    List<DailyRecordDTO> getTodayRecords();
+    List<WeeklyHistoryDTO> getMyWeeklyHistory(Integer userId);
 }

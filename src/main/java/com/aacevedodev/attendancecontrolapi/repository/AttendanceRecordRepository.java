@@ -76,4 +76,27 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
             ")",
             nativeQuery = true)
     List<User> findAbsentUsers(@Param("fecha") String fecha);
+    @Query("SELECT COUNT(DISTINCT a.user.id) FROM AttendanceRecord a " +
+            "WHERE a.typeAttendance = :type " +
+            "AND a.date BETWEEN :start AND :end")
+    long countDistinctByUserIdAndTypeAndDateBetween(
+            @Param("type") AttendanceType type,
+            @Param("start") Timestamp start,
+            @Param("end") Timestamp end
+    );
+
+    @Query(value =
+            "SELECT COUNT(DISTINCT ar.user_id) FROM attendance_record ar " +
+            "JOIN user u ON ar.user_id = u.id " +
+            "WHERE ar.type = 'ENTRADA' " +
+            "AND ar.date BETWEEN :start AND :end " +
+            "AND TIME(ar.date) > :horaLimite " +
+            "AND u.deleted = false",
+            nativeQuery = true)
+    long countLateArrivalsToday(
+            @Param("start") Timestamp start,
+            @Param("end") Timestamp end,
+            @Param("horaLimite") String horaLimite
+    );
+    List<AttendanceRecord> findByDateBetween(Timestamp start, Timestamp end);
 }

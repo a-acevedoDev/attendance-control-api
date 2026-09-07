@@ -18,7 +18,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 public class IAttendanceService implements AttendanceService {
@@ -199,6 +201,158 @@ public class IAttendanceService implements AttendanceService {
                 Timestamp.valueOf(start),
                 Timestamp.valueOf(end)
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DashboardMetricsDTO getDashboardMetrics() {
+        LocalDate today = LocalDate.now();
+        LocalDateTime startOfDay = today.atStartOfDay();
+        LocalDateTime endOfDay = today.atTime(23, 59, 59);
+
+        long totalActiveUsers = userRepository.count();
+
+        long presentToday = attendanceRepository.countDistinctByUserIdAndTypeAndDateBetween(
+                AttendanceType.ENTRADA,
+                Timestamp.valueOf(startOfDay),
+                Timestamp.valueOf(endOfDay)
+        );
+
+        long lateToday = attendanceRepository.countLateArrivalsToday(
+                Timestamp.valueOf(startOfDay),
+                Timestamp.valueOf(endOfDay),
+                attendanceEntry
+        );
+
+        long absentToday = totalActiveUsers - presentToday;
+
+        return DashboardMetricsDTO.builder()
+                .presentToday(presentToday)
+                .lateToday(lateToday)
+                .absentToday(absentToday)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DailyRecordDTO> getTodayRecords() {
+        LocalDate today = LocalDate.now();
+        LocalDateTime start = today.atStartOfDay();
+        LocalDateTime end = today.atTime(23, 59, 59);
+
+        List<User> activeUsers = userRepository.findAll();
+
+        List<AttendanceRecord> todayRecords = attendanceRepository
+                .findByDateBetween(Timestamp.valueOf(start), Timestamp.valueOf(end));
+
+        Map<Integer, AttendanceRecord> entryMap = todayRecords.stream()
+                .filter(r -> r.getTypeAttendance() == AttendanceType.ENTRADA)
+                .collect(Collectors.toMap(
+                        r -> r.getUser().getId(),
+                        r -> r,
+                        (existing, replacement) -> existing
+                ));
+
+        Map<Integer, AttendanceRecord> departureMap = todayRecords.stream()
+                .filter(r -> r.getTypeAttendance() == AttendanceType.SALIDA)
+                .collect(Collectors.toMap(
+                        r -> r.getUser().getId(),
+                        r -> r,
+                        (existing, replacement) -> existing
+                ));
+
+        LocalTime lateLimit = LocalTime.parse(attendanceEntry);
+        LocalTime earlyDepartureLimit = LocalTime.parse(attendanceDeparture);
+
+        return activeUsers.stream()
+                .map(user -> {
+                    AttendanceRecord entry = entryMap.get(user.getId());
+                    AttendanceRecord departure = departureMap.get(user.getId());
+
+                    LocalTime entryTime = entry != null ? entry.getDate().toLocalDateTime().toLocalTime() : null;
+                    LocalTime departureTime = departure != null ? departure.getDate().toLocalDateTime().toLocalTime() : null;
+
+                    String status;
+
+                    if (entryTime == null) {
+                        status = "INASISTENTE";
+                    } else if (entryTime.isAfter(lateLimit)) {
+                        status = "ATRASADO";
+                    } else if (departureTime != null && departureTime.isBefore(earlyDepartureLimit)) {
+                        status = "SALIDA_ANTICIPADA";
+                    } else {
+                        status = "PRESENTE";
+                    }
+
+                    return DailyRecordDTO.builder()
+                            .userId(user.getId())
+                            .fullName(user.getName() + " " + user.getLastName())
+                            .entryTime(entryTime)
+                            .departureTime(departureTime)
+                            .status(status)
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<WeeklyHistoryDTO> getMyWeeklyHistory(Integer userId) {
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(6);
+
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = endDate.atTime(23, 59, 59);
+
+        List<AttendanceRecord> records = attendanceRepository
+                .findByUserIdAndDateBetween(userId, Timestamp.valueOf(start), Timestamp.valueOf(end));
+
+        Map<LocalDate, List<AttendanceRecord>> recordsByDate = records.stream()
+                .collect(Collectors.groupingBy(
+                        r -> r.getDate().toLocalDateTime().toLocalDate()
+                ));
+
+        // 4. Generar lista de días (últimos 7 días)
+        LocalTime lateLimit = LocalTime.parse(attendanceEntry);
+        LocalTime earlyDepartureLimit = LocalTime.parse(attendanceDeparture);
+
+        return IntStream.rangeClosed(0, 6)
+                .mapToObj(i -> startDate.plusDays(i))
+                .map(date -> {
+                    List<AttendanceRecord> dayRecords = recordsByDate.getOrDefault(date, List.of());
+
+                    AttendanceRecord entry = dayRecords.stream()
+                            .filter(r -> r.getTypeAttendance() == AttendanceType.ENTRADA)
+                            .findFirst()
+                            .orElse(null);
+
+                    AttendanceRecord departure = dayRecords.stream()
+                            .filter(r -> r.getTypeAttendance() == AttendanceType.SALIDA)
+                            .findFirst()
+                            .orElse(null);
+
+                    LocalTime entryTime = entry != null ? entry.getDate().toLocalDateTime().toLocalTime() : null;
+                    LocalTime departureTime = departure != null ? departure.getDate().toLocalDateTime().toLocalTime() : null;
+
+                    String status;
+                    if (entryTime == null) {
+                        status = "AUSENTE";
+                    } else if (entryTime.isAfter(lateLimit)) {
+                        status = "ATRASADO";
+                    } else if (departureTime != null && departureTime.isBefore(earlyDepartureLimit)) {
+                        status = "SALIDA_ANTICIPADA";
+                    } else {
+                        status = "PRESENTE";
+                    }
+
+                    return WeeklyHistoryDTO.builder()
+                            .date(date)
+                            .entryTime(entryTime)
+                            .departureTime(departureTime)
+                            .status(status)
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 
     private int delayMinute(Timestamp entry) {

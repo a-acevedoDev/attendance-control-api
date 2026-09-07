@@ -1,6 +1,7 @@
 package com.aacevedodev.attendancecontrolapi.service.impl;
 
 import com.aacevedodev.attendancecontrolapi.dto.UserCreateDTO;
+import com.aacevedodev.attendancecontrolapi.dto.UserManagementDTO;
 import com.aacevedodev.attendancecontrolapi.dto.UserUpdateDTO;
 import com.aacevedodev.attendancecontrolapi.model.Credential;
 import com.aacevedodev.attendancecontrolapi.model.Role;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class IUserService implements UserService {
@@ -162,5 +164,33 @@ public class IUserService implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         return user.getRoles();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserManagementDTO> getAllUsersForManagement() {
+
+        List<User> allUsers = userRepository.findAllWithDeleted();
+
+        Set<Integer> activeIds = userRepository.findAllActive().stream()
+                .map(User::getId)
+                .collect(Collectors.toSet());
+
+        return allUsers.stream()
+                .map(user -> {
+                    String email = user.getCredential() != null
+                            ? user.getCredential().getEmail()
+                            : "Sin correo";
+
+                    String status = activeIds.contains(user.getId()) ? "ACTIVO" : "INACTIVO";
+
+                    return UserManagementDTO.builder()
+                            .id(user.getId())
+                            .fullName(user.getName() + " " + user.getLastName())
+                            .email(email)
+                            .status(status)
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 }
