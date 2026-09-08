@@ -2,10 +2,13 @@ package com.aacevedodev.attendancecontrolapi.controller;
 
 import com.aacevedodev.attendancecontrolapi.dto.LoginRequestDTO;
 import com.aacevedodev.attendancecontrolapi.dto.AuthResponseDTO;
+import com.aacevedodev.attendancecontrolapi.dto.UserCreateDTO;
 import com.aacevedodev.attendancecontrolapi.model.User;
 import com.aacevedodev.attendancecontrolapi.security.JwtService;
 import com.aacevedodev.attendancecontrolapi.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -60,5 +63,11 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<User> registerUser(@Valid @RequestBody UserCreateDTO createDTO) {
+        User createdUser = userService.createUser(createDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 }
