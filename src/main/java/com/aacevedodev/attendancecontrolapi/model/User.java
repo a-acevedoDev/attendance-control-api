@@ -1,5 +1,6 @@
 package com.aacevedodev.attendancecontrolapi.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -29,7 +30,7 @@ public class User {
 
     @NotBlank
     @Column(length = 12)
-    @Size(min = 12, max = 12, message = "El rut debe tener 12 caracteres.")
+    @Size(max = 12, message = "El rut debe tener máximo 12 caracteres.")
     private String rut;
 
     @NotBlank
@@ -57,6 +58,7 @@ public class User {
     private Timestamp updateAt;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnore
     private Credential credential;
 
     @OneToMany(mappedBy = "user", cascade = {
